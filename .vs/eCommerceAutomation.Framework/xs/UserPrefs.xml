@@ -1,0 +1,31 @@
+﻿<Properties>
+  <MonoDevelop.Ide.Workbench ActiveDocument="src/eCommerceAutomation.Framework/Models/UpdateProductModel.cs">
+    <Files>
+      <File FileName="src/eCommerceAutomation.Framework/Constants/RecordStatus.cs" Line="8" Column="6" />
+      <File FileName="src/eCommerceAutomation.Framework/Constants/SourceType.cs" />
+      <File FileName="src/eCommerceAutomation.Framework/Models/WebsiteMetadataModel.cs" />
+      <File FileName="src/eCommerceAutomation.Framework/Models/TelegramMetadataModel.cs" Line="6" Column="15" />
+      <File FileName="src/eCommerceAutomation.Framework/CommonHelper.cs" Line="92" Column="52" />
+      <File FileName="src/eCommerceAutomation.Framework/Models/UpdateProductModel.cs" Line="1" Column="1" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="eCommerceAutomation.Framework" expanded="True">
+            <Node name="eCommerceAutomation.Framework" expanded="True">
+              <Node name="Models" expanded="True">
+                <Node name="UpdateProductModel.cs" selected="True" />
+              </Node>
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>
