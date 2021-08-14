@@ -1,0 +1,181 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using eCommerceAutomation.Framework.Models;
+using Microsoft.Extensions.Configuration;
+
+namespace eCommerceAutomation.Framework
+{
+    public class CommonHelper
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        private readonly string _productMarketDataPatchEndpoint;
+        private readonly string _productAvailableStatusPatchEndpoint;
+        private readonly decimal _fixedAdjustmentRatio;
+
+        public CommonHelper(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        {
+            _httpClientFactory = httpClientFactory;
+
+            _productMarketDataPatchEndpoint = configuration.GetSection("ProductMarketDataPatchEndpoint").Value;
+            _productAvailableStatusPatchEndpoint = configuration.GetSection("ProductAvailableStatusPatchEndpoint").Value;
+            _fixedAdjustmentRatio = decimal.Parse(configuration.GetSection("FixedAdjustmentRatio").Value);
+        }
+
+        public async Task<HttpResponseMessage> UpdateProductUsingWebsiteMetadataModel(string productExternalId, WebsiteMetadataModel model)
+        {
+            var updateProductModel = new UpdateProductModel()
+            {
+                Price = model.Price,
+                TierPrices = model.WholesalePrices,
+                MinimumQuantity = model.MinimumQuantity,
+            };
+            var json = JsonSerializer.Serialize(updateProductModel);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+            var url = $"{_productMarketDataPatchEndpoint}{productExternalId}";
+            HttpResponseMessage response;
+
+            using (var client = _httpClientFactory.CreateClient())
+            {
+                var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
+                request.Content = data;
+
+                response = await client.SendAsync(request);
+            }
+
+            return response;
+        }
+
+        public async Task<HttpResponseMessage> UnavailableProduct(string productExternalId)
+        {
+            var url = $"{_productAvailableStatusPatchEndpoint}{productExternalId}";
+            HttpResponseMessage response;
+
+            using (var client = _httpClientFactory.CreateClient())
+            {
+                var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
+
+                response = await client.SendAsync(request);
+            }
+
+            return response;
+        }
+
+        public async Task<HttpResponseMessage> AvailableProduct(string productExternalId)
+        {
+            var url = $"{_productAvailableStatusPatchEndpoint}{productExternalId}";
+
+            HttpResponseMessage response;
+
+            using (var client = _httpClientFactory.CreateClient())
+            {
+                var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
+
+                response = await client.SendAsync(request);
+            }
+
+            return response;
+        }
+
+        public decimal CustomPriceAdjustment(decimal? price, string adjustmentValue)
+        {
+            if (!price.HasValue)
+                return 0;
+
+            if (!string.IsNullOrEmpty(adjustmentValue))
+            {
+                var adjustmentPrice = 0M;
+                var adjustmentRatio = 0M;
+                var adjustmentMode = string.Empty;
+
+                var adjustment = adjustmentValue;
+
+                var operation = "+";
+                if (adjustment.IndexOf("+") != -1)
+                {
+                    adjustment = adjustment.Replace("+", "");
+
+                    operation = "+";
+                }
+                else if (adjustment.IndexOf("-") != -1)
+                {
+                    adjustment = adjustment.Replace("-", "");
+
+                    operation = "-";
+                }
+
+                if (adjustment.IndexOf("%") != -1)
+                {
+                    // Ratio adjustment mode
+
+                    adjustmentMode = "ratio";
+
+                    adjustment = adjustment.Replace("%", "");
+
+                    adjustmentRatio = decimal.Parse(adjustment);
+                }
+                else
+                {
+                    // Price adjustment mode
+
+                    adjustmentMode = "price";
+
+                    adjustmentPrice = decimal.Parse(adjustment);
+                }
+
+                if (adjustmentMode == "ratio")
+                {
+                    if (operation == "+")
+                    {
+                        return price.Value + price.Value * adjustmentRatio / 100;
+                    }
+                    else
+                    {
+                        return price.Value - price.Value * adjustmentRatio / 100;
+                    }
+                }
+                else if (adjustmentMode == "price")
+                {
+                    if (operation == "+")
+                    {
+                        return price.Value + adjustmentPrice;
+                    }
+                    else
+                    {
+                        return price.Value - adjustmentPrice;
+                    }
+                }
+            }
+
+            return price.Value;
+        }
+
+        public WebsiteMetadataModel WebsitePriceAdjustment(WebsiteMetadataModel metadata, decimal? price, string priceAdjustment)
+        {
+            var random = new Random();
+            var newMetadata = new WebsiteMetadataModel();
+
+            newMetadata.InStockQuantity = metadata.InStockQuantity;
+            newMetadata.MinimumQuantity = metadata.MinimumQuantity;
+            newMetadata.IsInStock = metadata.IsInStock;
+            newMetadata.OldPrice = CustomPriceAdjustment(metadata.OldPrice * _fixedAdjustmentRatio, priceAdjustment);
+            newMetadata.Price = CustomPriceAdjustment(metadata.Price * _fixedAdjustmentRatio, priceAdjustment);
+
+            var tierPrices = metadata.WholesalePrices.OrderBy(x => x.Item1).ToList();
+            if (tierPrices.Any())
+            {
+                var newTierPrices = new List<Tuple<int, decimal>>();
+                foreach (var tierPrice in tierPrices)
+                    newTierPrices.Add(new Tuple<int, decimal>(tierPrice.Item1, CustomPriceAdjustment(tierPrice.Item2, priceAdjustment)));
+                newMetadata.WholesalePrices = newTierPrices;
+            }
+
+            return newMetadata;
+        }
+    }
+}
