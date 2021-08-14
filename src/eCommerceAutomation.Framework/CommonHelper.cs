@@ -7,20 +7,23 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using eCommerceAutomation.Framework.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace eCommerceAutomation.Framework
 {
     public class CommonHelper
     {
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IServiceProvider _serviceProvider;
 
         private readonly string _productMarketDataPatchEndpoint;
         private readonly string _productAvailableStatusPatchEndpoint;
         private readonly decimal _fixedAdjustmentRatio;
 
-        public CommonHelper(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public decimal FixedAdjustmentRatio => _fixedAdjustmentRatio;
+
+        public CommonHelper(IServiceProvider serviceProvider, IConfiguration configuration)
         {
-            _httpClientFactory = httpClientFactory;
+            _serviceProvider = serviceProvider;
 
             _productMarketDataPatchEndpoint = configuration.GetSection("ProductMarketDataPatchEndpoint").Value;
             _productAvailableStatusPatchEndpoint = configuration.GetSection("ProductAvailableStatusPatchEndpoint").Value;
@@ -40,12 +43,15 @@ namespace eCommerceAutomation.Framework
             var url = $"{_productMarketDataPatchEndpoint}{productExternalId}";
             HttpResponseMessage response;
 
-            using (var client = _httpClientFactory.CreateClient())
+            using (var scope = _serviceProvider.CreateScope())
             {
-                var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
-                request.Content = data;
+                using (var client = scope.ServiceProvider.GetService<IHttpClientFactory>().CreateClient())
+                {
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
+                    request.Content = data;
 
-                response = await client.SendAsync(request);
+                    response = await client.SendAsync(request);
+                }
             }
 
             return response;
@@ -56,11 +62,14 @@ namespace eCommerceAutomation.Framework
             var url = $"{_productAvailableStatusPatchEndpoint}{productExternalId}";
             HttpResponseMessage response;
 
-            using (var client = _httpClientFactory.CreateClient())
+            using (var scope = _serviceProvider.CreateScope())
             {
-                var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
+                using (var client = scope.ServiceProvider.GetService<IHttpClientFactory>().CreateClient())
+                {
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
 
-                response = await client.SendAsync(request);
+                    response = await client.SendAsync(request);
+                }
             }
 
             return response;
@@ -72,11 +81,14 @@ namespace eCommerceAutomation.Framework
 
             HttpResponseMessage response;
 
-            using (var client = _httpClientFactory.CreateClient())
+            using (var scope = _serviceProvider.CreateScope())
             {
-                var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
+                using (var client = scope.ServiceProvider.GetService<IHttpClientFactory>().CreateClient())
+                {
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
 
-                response = await client.SendAsync(request);
+                    response = await client.SendAsync(request);
+                }
             }
 
             return response;
@@ -165,6 +177,29 @@ namespace eCommerceAutomation.Framework
             newMetadata.IsInStock = metadata.IsInStock;
             newMetadata.OldPrice = CustomPriceAdjustment(metadata.OldPrice * _fixedAdjustmentRatio, priceAdjustment);
             newMetadata.Price = CustomPriceAdjustment(metadata.Price * _fixedAdjustmentRatio, priceAdjustment);
+
+            var tierPrices = metadata.WholesalePrices.OrderBy(x => x.Item1).ToList();
+            if (tierPrices.Any())
+            {
+                var newTierPrices = new List<Tuple<int, decimal>>();
+                foreach (var tierPrice in tierPrices)
+                    newTierPrices.Add(new Tuple<int, decimal>(tierPrice.Item1, CustomPriceAdjustment(tierPrice.Item2, priceAdjustment)));
+                newMetadata.WholesalePrices = newTierPrices;
+            }
+
+            return newMetadata;
+        }
+
+        public WebsiteMetadataModel WebsitePriceAdjustment(WebsiteMetadataModel metadata, string retailPriceAdjustment, string priceAdjustment)
+        {
+            var random = new Random();
+            var newMetadata = new WebsiteMetadataModel();
+
+            newMetadata.InStockQuantity = metadata.InStockQuantity;
+            newMetadata.MinimumQuantity = metadata.MinimumQuantity;
+            newMetadata.IsInStock = metadata.IsInStock;
+            newMetadata.OldPrice = CustomPriceAdjustment(metadata.OldPrice * _fixedAdjustmentRatio, retailPriceAdjustment);
+            newMetadata.Price = CustomPriceAdjustment(metadata.Price * _fixedAdjustmentRatio, retailPriceAdjustment);
 
             var tierPrices = metadata.WholesalePrices.OrderBy(x => x.Item1).ToList();
             if (tierPrices.Any())
