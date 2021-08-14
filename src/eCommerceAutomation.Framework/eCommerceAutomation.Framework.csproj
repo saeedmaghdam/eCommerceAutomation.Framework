@@ -18,4 +18,7 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="robocopy $(TargetDir) $(SolutionDir)artifacts. /IS /S /E /XF &quot;$(TargetDir)eCommerceAutomation.Framework.deps.json&quot;&#xD;&#xA;if %25ERRORLEVEL%25 GEQ 8 goto failed&#xD;&#xA;GOTO success&#xD;&#xA;&#xD;&#xA;:failed&#xD;&#xA;exit 1&#xD;&#xA;&#xD;&#xA;:success&#xD;&#xA;exit 0" />
+  </Target>
 </Project>
