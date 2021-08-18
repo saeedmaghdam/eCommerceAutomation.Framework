@@ -18,6 +18,7 @@ namespace eCommerceAutomation.Framework
         private readonly string _productMarketDataPatchEndpoint;
         private readonly string _productAvailableStatusPatchEndpoint;
         private readonly string _productUnavailableStatusPatchEndpoint;
+        private readonly string _apiKey;
         private readonly decimal _fixedAdjustmentRatio;
 
         public decimal FixedAdjustmentRatio => _fixedAdjustmentRatio;
@@ -29,6 +30,7 @@ namespace eCommerceAutomation.Framework
             _productMarketDataPatchEndpoint = configuration.GetSection("ProductMarketDataPatchEndpoint").Value;
             _productAvailableStatusPatchEndpoint = configuration.GetSection("ProductAvailableStatusPatchEndpoint").Value;
             _productUnavailableStatusPatchEndpoint = configuration.GetSection("ProductUnavailableStatusPatchEndpoint").Value;
+            _apiKey = configuration.GetSection("APIKey").Value;
             _fixedAdjustmentRatio = decimal.Parse(configuration.GetSection("FixedAdjustmentRatio").Value);
         }
 
@@ -51,6 +53,7 @@ namespace eCommerceAutomation.Framework
                 {
                     var request = new HttpRequestMessage(new HttpMethod("PATCH"), url);
                     request.Content = data;
+                    client.DefaultRequestHeaders.Add("x-api-key", _apiKey);
 
                     response = await client.SendAsync(request);
                 }
