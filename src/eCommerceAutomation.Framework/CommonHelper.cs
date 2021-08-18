@@ -17,6 +17,7 @@ namespace eCommerceAutomation.Framework
 
         private readonly string _productMarketDataPatchEndpoint;
         private readonly string _productAvailableStatusPatchEndpoint;
+        private readonly string _productUnavailableStatusPatchEndpoint;
         private readonly decimal _fixedAdjustmentRatio;
 
         public decimal FixedAdjustmentRatio => _fixedAdjustmentRatio;
@@ -27,6 +28,7 @@ namespace eCommerceAutomation.Framework
 
             _productMarketDataPatchEndpoint = configuration.GetSection("ProductMarketDataPatchEndpoint").Value;
             _productAvailableStatusPatchEndpoint = configuration.GetSection("ProductAvailableStatusPatchEndpoint").Value;
+            _productUnavailableStatusPatchEndpoint = configuration.GetSection("ProductUnavailableStatusPatchEndpoint").Value;
             _fixedAdjustmentRatio = decimal.Parse(configuration.GetSection("FixedAdjustmentRatio").Value);
         }
 
@@ -40,7 +42,7 @@ namespace eCommerceAutomation.Framework
             };
             var json = JsonSerializer.Serialize(updateProductModel);
             var data = new StringContent(json, Encoding.UTF8, "application/json");
-            var url = $"{_productMarketDataPatchEndpoint}{productExternalId}";
+            var url = string.Format(_productMarketDataPatchEndpoint, productExternalId);
             HttpResponseMessage response;
 
             using (var scope = _serviceProvider.CreateScope())
@@ -59,7 +61,7 @@ namespace eCommerceAutomation.Framework
 
         public async Task<HttpResponseMessage> UnavailableProduct(string productExternalId)
         {
-            var url = $"{_productAvailableStatusPatchEndpoint}{productExternalId}";
+            var url = string.Format(_productUnavailableStatusPatchEndpoint, productExternalId);
             HttpResponseMessage response;
 
             using (var scope = _serviceProvider.CreateScope())
@@ -77,7 +79,7 @@ namespace eCommerceAutomation.Framework
 
         public async Task<HttpResponseMessage> AvailableProduct(string productExternalId)
         {
-            var url = $"{_productAvailableStatusPatchEndpoint}{productExternalId}";
+            var url = string.Format(_productAvailableStatusPatchEndpoint, productExternalId);
 
             HttpResponseMessage response;
 
